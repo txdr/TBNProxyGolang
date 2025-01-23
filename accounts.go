@@ -73,7 +73,7 @@ func createAccountUI() {
 	verifyURL, _ := url.Parse(fmt.Sprintf("%s?otc=%s", verifyInfo.VerificationURI, verifyInfo.UserCode))
 	fWindow.SetContent(container.NewVBox(
 		widget.NewLabel("Account creation"),
-		widget.NewLabel(fmt.Sprintf("Please authenticate at %s using the code %s.", verifyInfo.VerificationURI, verifyInfo.UserCode)),
+		widget.NewLabel(fmt.Sprintf("Authentication link: %s\nAuthentication code: %s.", verifyInfo.VerificationURI, verifyInfo.UserCode)),
 		widget.NewHyperlink("Open Link", verifyURL),
 		createBackButton(openAccounts),
 	))
@@ -108,7 +108,7 @@ func accountManagementUI(account Account) {
 	fWindow.SetContent(container.NewVBox(
 		widget.NewLabel(fmt.Sprintf("Account management - \"%s\"", account.Name)),
 		widget.NewButton("Play with account", func() {
-			// TODO: Start proxy and open base playing page.
+			openIPInput(account)
 		}),
 		widget.NewButton("Delete account", func() {
 			deleteAccount(account.Name)
