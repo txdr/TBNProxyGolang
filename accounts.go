@@ -2,13 +2,27 @@ package main
 
 import (
 	"TBNProxyRewrite/authentication"
+	"encoding/json"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"time"
 )
+
+type APIRegisterResponse struct {
+	Registered bool   `json:"registered"`
+	Text       string `json:"text"`
+}
+
+type APILoginResponse struct {
+	LoggedIn bool   `json:"loggedIn"`
+	Token    string `json:"token"`
+	Text     string `json:"text"`
+}
 
 func signUp() {
 	username := widget.NewEntry()
@@ -17,14 +31,35 @@ func signUp() {
 	password := widget.NewPasswordEntry()
 	password.SetPlaceHolder("Password")
 
+	errLabel := widget.NewLabel("")
+
 	fWindow.SetContent(container.NewVBox(
 		widget.NewLabel("Sign Up"),
 		username,
 		password,
 		widget.NewButton("Confirm", func() {
-			// TODO: Store token and also log in.
-			openAccounts()
+			usernameText := username.Text
+			passwordText := password.Text
+			response, err := http.Get(fmt.Sprintf("%s/register/%s/%s", API_ENDPOINT, usernameText, passwordText))
+			if err != nil {
+				panic(err)
+			}
+			body, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				fmt.Println("Failed to read response body for signUp.")
+			}
+			var registerResponse APIRegisterResponse
+			err = json.Unmarshal(body, &registerResponse)
+			if err != nil {
+				fmt.Println("Failed to parse response body for signUp.")
+			}
+			if !registerResponse.Registered {
+				errLabel.SetText(registerResponse.Text)
+				return
+			}
+			errLabel.SetText("Successfully registered. You can log in.")
 		}),
+		errLabel,
 		createBackButton(signUpLogIn),
 	))
 }
@@ -36,14 +71,36 @@ func logIn() {
 	password := widget.NewPasswordEntry()
 	password.SetPlaceHolder("Password")
 
+	errLabel := widget.NewLabel("")
+
 	fWindow.SetContent(container.NewVBox(
 		widget.NewLabel("Log In"),
 		username,
 		password,
 		widget.NewButton("Confirm", func() {
-			// TODO: Confirm logged in & store token.
+			usernameText := username.Text
+			passwordText := password.Text
+			response, err := http.Get(fmt.Sprintf("%s/login/%s/%s", API_ENDPOINT, usernameText, passwordText))
+			if err != nil {
+				panic(err)
+			}
+			body, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				fmt.Println("Failed to read response body for logIn.")
+			}
+			var logInResponse APILoginResponse
+			err = json.Unmarshal(body, &logInResponse)
+			if err != nil {
+				fmt.Println("Failed to parse response body for logIn.")
+			}
+			if logInResponse.Token == "" {
+				errLabel.SetText(logInResponse.Text)
+				return
+			}
+			updateToken(logInResponse.Token)
 			openAccounts()
 		}),
+		errLabel,
 		createBackButton(signUpLogIn),
 	))
 }
@@ -56,7 +113,6 @@ func openAccounts() {
 			accountManagementUI(account)
 		}))
 	}
-	widgets = append(widgets, widget.NewSeparator())
 	widgets = append(widgets, widget.NewButton("Create account", createAccountUI))
 
 	fWindow.SetContent(container.NewVBox(widgets...))
@@ -114,7 +170,6 @@ func accountManagementUI(account Account) {
 			deleteAccount(account.Name)
 			openAccounts()
 		}),
-		widget.NewSeparator(),
 		createBackButton(openAccounts),
 	))
 }

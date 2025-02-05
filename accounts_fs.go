@@ -53,6 +53,9 @@ func createAccount(name, authCode string) {
 	defer file.Close()
 
 	packed, err := json.Marshal(account)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Failed to pack create account file for %s.", name))
+	}
 	_, err = file.Write(packed)
 	if err != nil {
 		fmt.Println(fmt.Sprintf("Failed to write account file for %s.", name))

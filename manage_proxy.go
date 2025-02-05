@@ -20,7 +20,24 @@ func openIPInput(account Account) {
 		response, err := bedrockping.Query(ipEntry.Text, 5*time.Second, 150*time.Millisecond)
 		if err != nil {
 			errorInput.SetText("Could not ping server. Please try again.")
-			playButton.Enable()
+			var popUp *widget.PopUp
+			popUp = widget.NewModalPopUp(container.NewVBox(
+				widget.NewLabel("Failed to ping, connect anyways?"),
+				widget.NewButton("Yes", func() {
+					popUp.Hide()
+					playWindow()
+					go startProxy(ipEntry.Text, 19132, &oauth2.Token{
+						AccessToken: account.AccessCode,
+					})
+					return
+				}),
+				widget.NewButton("No", func() {
+					popUp.Hide()
+					playButton.Enable()
+					return
+				}),
+			), fWindow.Canvas())
+			popUp.Show()
 			return
 		}
 		errorInput.SetText(fmt.Sprintf("Successful Ping! (%d/%d Players)", response.PlayerCount, response.MaxPlayers))
